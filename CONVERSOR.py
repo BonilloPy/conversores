@@ -1,38 +1,49 @@
 import streamlit as st
-import os
 import pandas as pd
+import io
 
 # Função para converter todos os arquivos CSV em uma pasta para o formato XLSX
-def convert_all_csv_to_xlsx(folder_path):
-    for filename in os.listdir(folder_path):
-        if filename.endswith('.csv'):
-            csv_file_path = os.path.join(folder_path, filename)
-            xlsx_file_path = os.path.join(folder_path, filename.replace('.csv', '.xlsx'))
+def convert_all_csv_to_xlsx(uploaded_files):
+    converted_files = []
 
-            separator = ';' if 'MP' in filename else ','
+    for uploaded_file in uploaded_files:
+        if uploaded_file.name.endswith('.csv'):
+            separator = ';' if 'MP' in uploaded_file.name else ','
 
             try:
-                df = pd.read_csv(csv_file_path, sep=separator)
+                # Lendo o arquivo CSV do arquivo carregado
+                df = pd.read_csv(uploaded_file, sep=separator)
             except UnicodeDecodeError:
                 try:
-                    df = pd.read_csv(csv_file_path, sep=separator, encoding='ISO-8859-1')
+                    df = pd.read_csv(uploaded_file, sep=separator, encoding='ISO-8859-1')
                 except Exception as e:
-                    st.error(f"Erro ao processar o arquivo {filename} com a codificação 'ISO-8859-1': {e}")
+                    st.error(f"Erro ao processar o arquivo {uploaded_file.name} com a codificação 'ISO-8859-1': {e}")
                     continue
 
-            df.to_excel(xlsx_file_path, index=False)
+            # Convertendo DataFrame para XLSX
+            output = io.BytesIO()
+            df.to_excel(output, index=False)
+            output.seek(0)
+            converted_files.append(output)
+
+    return converted_files
 
 # Interface Streamlit
 st.title('Conversor de CSV para XLSX')
 
-# Campo para inserir o caminho da pasta
-folder_path = st.text_input('Informe o caminho da pasta contendo os arquivos CSV:')
+# Upload de múltiplos arquivos
+uploaded_files = st.file_uploader("Escolha arquivos CSV", accept_multiple_files=True, type='csv')
 
 # Botão para executar a conversão
-if st.button('Converter CSV para XLSX'):
-    if os.path.isdir(folder_path):
-        with st.spinner('Convertendo arquivos. Por favor, aguarde...'):
-            convert_all_csv_to_xlsx(folder_path)
-        st.success('Conversão concluída com sucesso!')
-    else:
-        st.error('O caminho informado não é uma pasta válida.')
+if st.button('Converter CSV para XLSX') and uploaded_files:
+    with st.spinner('Convertendo arquivos. Por favor, aguarde...'):
+        converted_files = convert_all_csv_to_xlsx(uploaded_files)
+
+        # Disponibilizando os arquivos convertidos para download
+        for i, file in enumerate(converted_files):
+            st.download_button(label=f'Baixar XLSX {i+1}', 
+                               data=file, 
+                               file_name=f'converted_{i+1}.xlsx', 
+                               mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+    st.success('Conversão concluída com sucesso!')
