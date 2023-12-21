@@ -2,12 +2,11 @@ import streamlit as st
 import pandas as pd
 import io
 
-
-
-
 # Função para converter todos os arquivos CSV em uma pasta para o formato XLSX
 def convert_all_csv_to_xlsx(uploaded_files):
-    converted_files = []
+    # Inicializando a lista de buffers de arquivo na sessão, se ainda não existir
+    if 'converted_files' not in st.session_state:
+        st.session_state.converted_files = []
 
     for uploaded_file in uploaded_files:
         if uploaded_file.name.endswith('.csv'):
@@ -27,9 +26,10 @@ def convert_all_csv_to_xlsx(uploaded_files):
             output = io.BytesIO()
             df.to_excel(output, index=False)
             output.seek(0)
-            converted_files.append(output)
+            st.session_state.converted_files.append((uploaded_file.name, output))
+            st.success(f"Arquivo '{uploaded_file.name}' convertido com sucesso!")
 
-    return converted_files
+    return st.session_state.converted_files
 
 # Interface Streamlit
 st.title('Conversor de CSV para XLSX')
@@ -40,13 +40,15 @@ uploaded_files = st.file_uploader("Escolha arquivos CSV", accept_multiple_files=
 # Botão para executar a conversão
 if st.button('Converter CSV para XLSX') and uploaded_files:
     with st.spinner('Convertendo arquivos. Por favor, aguarde...'):
-        converted_files = convert_all_csv_to_xlsx(uploaded_files)
+        convert_all_csv_to_xlsx(uploaded_files)
 
-        # Disponibilizando os arquivos convertidos para download
-        for i, file in enumerate(converted_files):
-            st.download_button(label=f'Baixar XLSX {i+1}', 
-                               data=file, 
-                               file_name=f'converted_{i+1}.xlsx', 
-                               mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+# Disponibilizando os arquivos convertidos para download
+if 'converted_files' in st.session_state:
+    for filename, file in st.session_state.converted_files:
+        st.download_button(label=f'Baixar {filename.replace(".csv", ".xlsx")}',
+                           data=file,
+                           file_name=filename.replace(".csv", ".xlsx"),
+                           mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
-    st.success('Conversão concluída com sucesso!')
+if 'converted_files' in st.session_state and st.session_state.converted_files:
+    st.success('Todos os arquivos foram convertidos com sucesso!')
