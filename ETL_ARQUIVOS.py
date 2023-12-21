@@ -13,9 +13,6 @@ import pandas as pd
 import streamlit as st
 
 
-
-
-
 # Define as funções necessárias para processamento de dados
 def remove_espacos_colunas(dataframe):
     dataframe.columns = dataframe.columns.str.strip()
