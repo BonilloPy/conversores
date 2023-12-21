@@ -3,7 +3,7 @@ import pandas as pd
 import io
 
 
-server.maxUploadSize=400
+
 
 # Função para converter todos os arquivos CSV em uma pasta para o formato XLSX
 def convert_all_csv_to_xlsx(uploaded_files):
